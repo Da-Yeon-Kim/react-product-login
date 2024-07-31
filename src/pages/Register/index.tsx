@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useRegister } from '@/api/hooks/useRegister';
 import KAKAO_LOGO from '@/assets/kakao_logo.svg';
 import { Button } from '@/components/common/Button';
 import { UnderlineTextField } from '@/components/common/Form/Input/UnderlineTextField';
@@ -13,6 +14,7 @@ export const RegisterPage = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { register, loading, registerError } = useRegister();
 
   const handleConfirm = async () => {
     if (!email || !password) {
@@ -20,24 +22,11 @@ export const RegisterPage = () => {
       return;
     }
 
-    try {
-      const response = await fetch('/api/members/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, action: 'register' }),
-      });
+    const { success } = await register(email, password);
 
-      const result = await response.json();
-
-      if (response.ok) {
-        alert('회원가입이 완료되었습니다.');
-        navigate(RouterPath.login);
-      } else {
-        alert(result.message);
-      }
-    } catch (error) {
-      alert('회원가입 처리 중 오류가 발생했습니다.');
-      console.error(error);
+    if (success) {
+      alert('회원가입이 완료되었습니다.');
+      navigate(RouterPath.login);
     }
   };
 
@@ -64,7 +53,10 @@ export const RegisterPage = () => {
             sm: 60,
           }}
         />
-        <Button onClick={handleConfirm}>가입하기</Button>
+        <Button onClick={handleConfirm} disabled={loading}>
+          {loading ? '가입 중...' : '가입하기'}
+        </Button>
+        {registerError && <ErrorText>{registerError}</ErrorText>}
       </FormWrapper>
     </Wrapper>
   );
@@ -93,4 +85,9 @@ const FormWrapper = styled.article`
     border: 1px solid rgba(0, 0, 0, 0.12);
     padding: 60px 52px;
   }
+`;
+
+const ErrorText = styled.p`
+  color: red;
+  margin-top: 10px;
 `;

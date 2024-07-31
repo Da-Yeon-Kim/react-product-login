@@ -1,34 +1,55 @@
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
-import { authSessionStorage } from '@/utils/storage';
-
 type AuthInfo = {
-  id: string;
-  name: string;
+  email: string;
+  password: string;
   token: string;
 };
 
 export const AuthContext = createContext<AuthInfo | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const currentAuthToken = authSessionStorage.get();
-  const [isReady, setIsReady] = useState(!currentAuthToken);
-
   const [authInfo, setAuthInfo] = useState<AuthInfo | undefined>(undefined);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (currentAuthToken) {
-      setAuthInfo({
-        id: currentAuthToken, // TODO: 임시로 로그인 페이지에서 입력한 이름을 ID, token, name으로 사용
-        name: currentAuthToken,
-        token: currentAuthToken,
-      });
-      setIsReady(true);
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      const fetchUserInfo = async () => {
+        try {
+          const response = await fetch('/api/members/me', {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setAuthInfo({
+              email: data.email,
+              password: data.password,
+              token,
+            });
+          } else {
+            localStorage.removeItem('token');
+          }
+        } catch (error) {
+          console.error('Failed to fetch user info', error);
+          localStorage.removeItem('token');
+        }
+      };
+
+      fetchUserInfo();
     }
-  }, [currentAuthToken]);
+
+    setIsReady(true);
+  }, []);
 
   if (!isReady) return <></>;
+
   return <AuthContext.Provider value={authInfo}>{children}</AuthContext.Provider>;
 };
 

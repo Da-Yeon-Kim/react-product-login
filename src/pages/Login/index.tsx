@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
+import { useLogin } from '@/api/hooks/useLogin';
 import KAKAO_LOGO from '@/assets/kakao_logo.svg';
 import { Button } from '@/components/common/Button';
 import { UnderlineTextField } from '@/components/common/Form/Input/UnderlineTextField';
@@ -14,6 +15,7 @@ export const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [queryParams] = useSearchParams();
+  const { login, loading, loginError } = useLogin();
 
   const handleConfirm = async () => {
     if (!email || !password) {
@@ -21,25 +23,13 @@ export const LoginPage = () => {
       return;
     }
 
-    try {
-      const response = await fetch('/api/members/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    const result = await login(email, password);
 
-      const result = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', result.token);
-        const redirectUrl = queryParams.get('redirect') ?? `${window.location.origin}/`;
-        window.location.replace(redirectUrl);
-      } else {
-        alert(result.message);
-      }
-    } catch (error) {
-      alert('로그인 처리 중 오류가 발생했습니다.');
-      console.error(error);
+    if (result.success) {
+      const redirectUrl = queryParams.get('redirect') ?? `${window.location.origin}/`;
+      window.location.replace(redirectUrl);
+    } else {
+      if (loginError) alert(loginError);
     }
   };
 
@@ -66,7 +56,9 @@ export const LoginPage = () => {
             sm: 60,
           }}
         />
-        <Button onClick={handleConfirm}>로그인</Button>
+        <Button onClick={handleConfirm} disabled={loading}>
+          {loading ? '로그인 중...' : '로그인'}
+        </Button>
         <Spacing />
         <Button theme="lightGray" onClick={() => navigate(RouterPath.register)}>
           회원가입

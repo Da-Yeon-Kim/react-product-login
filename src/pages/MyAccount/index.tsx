@@ -8,6 +8,7 @@ import { authSessionStorage } from '@/utils/storage';
 
 export const MyAccountPage = () => {
   const authInfo = useAuth();
+  const userName = authInfo?.email.split('@')[0] || '사용자';
 
   const handleLogout = () => {
     authSessionStorage.set(undefined);
@@ -18,7 +19,7 @@ export const MyAccountPage = () => {
 
   return (
     <Wrapper>
-      {authInfo?.name}님 안녕하세요! <Spacing height={64} />
+      {userName}님 안녕하세요! <Spacing height={64} />
       <Button
         size="small"
         theme="darkGray"
