@@ -1,4 +1,7 @@
+import axios from 'axios';
 import { useState } from 'react';
+
+import { fetchInstance } from '@/api/instance';
 
 interface RegisterRequest {
   email: string;
@@ -19,23 +22,18 @@ export const useRegister = () => {
 
     try {
       const requestPayload: RegisterRequest = { email, password };
-      const response = await fetch('/api/members/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
-      });
+      const response = await fetchInstance.post('/members/register', requestPayload);
 
-      const result: RegisterResponse = await response.json();
+      const result: RegisterResponse = response.data;
+      localStorage.setItem('token', result.token);
 
-      if (response.ok) {
-        localStorage.setItem('token', result.token);
-        return { success: true };
-      } else {
-        setRegisterError('회원가입 실패');
-        return { success: false };
-      }
+      return { success: true };
     } catch (error) {
-      setRegisterError('회원가입 처리 중 오류가 발생했습니다.');
+      if (axios.isAxiosError(error)) {
+        setRegisterError('회원가입 실패');
+      } else {
+        setRegisterError('회원가입 처리 중 오류가 발생했습니다.');
+      }
       console.error(error);
       return { success: false };
     } finally {

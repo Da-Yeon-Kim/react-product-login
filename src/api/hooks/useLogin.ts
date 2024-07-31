@@ -1,4 +1,7 @@
+import axios, { type AxiosError } from 'axios';
 import { useState } from 'react';
+
+import { fetchInstance } from '@/api/instance';
 
 interface LoginRequest {
   email: string;
@@ -24,31 +27,30 @@ export const useLogin = () => {
 
     try {
       const requestPayload: LoginRequest = { email, password };
-      const response = await fetch('/api/members/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
-      });
+      const response = await fetchInstance.post('/members/login', requestPayload);
 
-      if (response.ok) {
-        const result: LoginResponse = await response.json();
-        localStorage.setItem('token', result.token);
-        return { success: true, email: result.email };
-      } else {
-        let errorMessage = '로그인 실패';
+      const result: LoginResponse = response.data;
+      localStorage.setItem('token', result.token);
 
-        if (response.status === 401) {
-          errorMessage = '유효하지 않은 인증 정보';
-        } else if (response.status === 403) {
-          errorMessage = '잘못된 로그인 시도';
-        }
-
-        const errorResult: ErrorResponse = await response.json();
-        setLoginError(errorResult.message || errorMessage);
-        return { success: false };
-      }
+      return { success: true, email: result.email };
     } catch (error) {
-      setLoginError('로그인 처리 중 오류가 발생했습니다.');
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<ErrorResponse>;
+        if (axiosError.response) {
+          const errorResult: ErrorResponse = axiosError.response.data;
+          if (axiosError.response.status === 401) {
+            setLoginError('유효하지 않은 인증 정보');
+          } else if (axiosError.response.status === 403) {
+            setLoginError('잘못된 로그인 시도');
+          } else {
+            setLoginError(errorResult.message || '로그인 실패');
+          }
+        } else {
+          setLoginError('로그인 처리 중 오류가 발생했습니다.');
+        }
+      } else {
+        setLoginError('로그인 처리 중 오류가 발생했습니다.');
+      }
       console.error(error);
       return { success: false };
     } finally {
